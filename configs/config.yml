@@ -1,44 +1,82 @@
 # ============================================================
-# ThermalGen — single config file for Dell XPS 16 (CPU only)
+# ThermalGen — Ann Arbor Drone Data
+# Option A: Direct fine-tune from HF pretrained weights
+# Current instance: ml.m5.2xlarge (CPU - pipeline testing only)
+# Training instance: ml.p3.2xlarge (V100 GPU - real training)
+# Capture date: 2024-08-04 (from metadata timestamps)
 # ============================================================
 
 # --- MODEL ---
-model: sit_b2
+model: sit_l2_concat
 patch_size: 2
-image_size: 64
+image_size: 64              # small for CPU testing
 
 # --- MODEL SOURCE ---
-hf_model_id: xjh19972/ThermalGen-B-2
+hf_model_id: xjh19972/ThermalGen-L-2-concat
 hf_model_file: model.safetensors
 
 # --- TRAINING ---
-epochs: 10
+epochs: 2                   # just enough to confirm pipeline works
 batch_size: 1
-learning_rate: 0.0001
+learning_rate: 0.00005
 grad_clip: 1.0
 
 # --- DATASET ---
-datafolder_name: STGL
-data_root: data/raw/STGL/
-dataset_index: 1
-train_file: boson_region1_flight2_night_train.png
-val_file: boson_region1_flight2_night_val.png
-test_file: boson_region1_flight1_night_test.png
+datafolder_name: AnnArbor
+train_rgb_dir:     data/raw/train/RGB/
+train_thermal_dir: data/raw/train/Thermal/
+test_rgb_dir:      data/raw/test/RGB/
+val_split: 0.15
+image_ext: .JPG
+
+# --- METADATA FILES ---
+train_test_split: data/raw/train_test_split.json
+weather_metadata: data/raw/drone_and_weather_metadata.json
+
+# --- IMAGE REGISTRATION ---
+register_images: true
 
 # --- ALPHAEARTH EMBEDDINGS ---
 alphaearth_dir: data/embeddings/alphaearth/
 alphaearth_dim: 64
-alphaearth_year: 2022
+alphaearth_year: 2024
 use_alphaearth: false
 
+# --- WEATHER CONDITIONING ---
+use_weather: true
+weather_dim: 9
+
+# --- ANN ARBOR BOUNDING BOX ---
+bbox_north: 42.3230
+bbox_south: 42.2230
+bbox_east: -83.6880
+bbox_west: -83.8010
+
 # --- SAVING ---
-checkpoint_dir: models/checkpoints/sit_b2_cpu/
-save_every: 2
+checkpoint_dir: models/checkpoints/ann_arbor/
+save_every: 1
+best_model_dir: models/final/ann_arbor/
 
 # --- HARDWARE ---
 num_workers: 0
 device: cpu
 seed: 42
+mixed_precision: false
+
+# --- METRIC-GUIDED TRAINING ---
+patience: 7
 
 # --- LOGGING ---
-log_every: 10
+log_every: 5
+
+# ============================================================
+# GPU CONFIG — copy these when switching to ml.p3.2xlarge
+# image_size: 256
+# epochs: 100
+# batch_size: 8
+# num_workers: 4
+# device: cuda
+# mixed_precision: true
+# save_every: 10
+# log_every: 20
+# ============================================================
