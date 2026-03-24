@@ -1,0 +1,40 @@
+models/checkpoints/
+models/final/
+
+# downloaded datasets — re-download from HF instead
+data/raw/
+data/embeddings/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# VS Code
+.vscode/
+
+# environment
+.env
+*.env
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# large file types — never commit these
+*.safetensors
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.h5
+*.pkl
+*.tif
+*.tiff
+*.png
+*.jpg
+*.jpeg
