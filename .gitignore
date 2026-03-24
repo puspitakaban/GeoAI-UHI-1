@@ -1,9 +1,7 @@
 models/checkpoints/
 models/final/
 
-# downloaded datasets — re-download from HF instead
-data/raw/
-data/embeddings/
+
 
 # Python cache
 __pycache__/
