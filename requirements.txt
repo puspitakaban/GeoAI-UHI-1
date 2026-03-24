@@ -1,0 +1,11 @@
+torch
+torchvision
+huggingface_hub
+datasets
+earthengine-api
+rasterio
+pandas
+numpy
+Pillow
+PyYAML
+tqdm

@@ -1,0 +1,30 @@
+# --- MODEL ---
+model: sit_b2
+patch_size: 2
+image_size: 64
+
+# --- TRAINING ---
+epochs: 10
+batch_size: 1
+learning_rate: 0.0001
+grad_clip: 1.0
+
+# --- DATASET ---
+datafolder_name: STGL
+data_root: data/raw/STGL/
+dataset_index: 1          # start with Boson night only
+train_file: boson_region1_flight2_night_train.png
+val_file: boson_region1_flight2_night_val.png
+test_file: boson_region1_flight1_night_test.png
+
+# --- SAVING ---
+checkpoint_dir: models/checkpoints/sit_b2_cpu/
+save_every: 2
+
+# --- HARDWARE ---
+num_workers: 0
+device: cpu
+seed: 42
+
+# --- LOGGING ---
+log_every: 10
