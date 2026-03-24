@@ -13,6 +13,79 @@ from huggingface_hub import hf_hub_download
 sys.path.insert(0, os.path.dirname(__file__))
 from dataset import STGLDataset
 
+# ============================================================
+# METRICS
+# ============================================================
+
+class ImageMetrics:
+    """
+    Tracks three standard image quality metrics:
+
+    PSNR  — Peak Signal-to-Noise Ratio
+             Higher is better. Measures pixel-level accuracy.
+             >30 dB = good, >40 dB = excellent.
+             Easy to compute but doesn't match human perception well.
+
+    SSIM  — Structural Similarity Index
+             Range: 0 to 1, higher is better.
+             Measures structure, contrast and luminance similarity.
+             Better than PSNR at matching how humans see quality.
+
+    LPIPS — Learned Perceptual Image Patch Similarity
+             Range: 0 to 1, LOWER is better.
+             Uses a pretrained VGG network to compare image patches
+             the way a human visual system would.
+             Best metric for generative models like ThermalGen.
+    """
+    def __init__(self, device):
+        self.device = device
+        # LPIPS uses a pretrained VGG network — downloads automatically
+        self.lpips_fn = lpips.LPIPS(net="vgg").to(device)
+        self.lpips_fn.eval()
+
+    def compute_psnr(self, pred, target):
+        """
+        pred, target : tensors in [-1, 1] range, shape [B, 3, H, W]
+        returns      : average PSNR in dB across the batch
+        """
+        # convert from [-1,1] to [0,1] for PSNR calculation
+        pred   = (pred.clamp(-1, 1) + 1) / 2
+        target = (target.clamp(-1, 1) + 1) / 2
+
+        mse = torch.mean((pred - target) ** 2, dim=[1, 2, 3])  # per image
+        # avoid log(0) if images are identical
+        psnr = -10 * torch.log10(mse + 1e-8)
+        return psnr.mean().item()
+
+    def compute_ssim(self, pred, target):
+        """
+        pred, target : tensors in [-1, 1] range, shape [B, 3, H, W]
+        returns      : average SSIM score (0 to 1)
+        """
+        pred   = (pred.clamp(-1, 1) + 1) / 2
+        target = (target.clamp(-1, 1) + 1) / 2
+        return ssim_fn(pred, target, data_range=1.0).item()
+
+    def compute_lpips(self, pred, target):
+        """
+        pred, target : tensors in [-1, 1] range — LPIPS expects this range
+        returns      : average LPIPS score (lower = better)
+        """
+        with torch.no_grad():
+            score = self.lpips_fn(pred.clamp(-1, 1),
+                                  target.clamp(-1, 1))
+        return score.mean().item()
+
+    def compute_all(self, pred, target):
+        """
+        Compute all three metrics at once.
+        Returns a dict for easy logging.
+        """
+        return {
+            "psnr":  self.compute_psnr(pred, target),
+            "ssim":  self.compute_ssim(pred, target),
+            "lpips": self.compute_lpips(pred, target),
+        }
 
 # ============================================================
 # 1. LOAD CONFIG
@@ -286,7 +359,53 @@ def train(config_path="configs/config.yml"):
         # --- validate ---
         model.eval()
         ae_proj.eval()
-        val_losses = []
+        val_losses  = []
+        all_psnr    = []
+        all_ssim    = []
+        all_lpips   = []
+
+        # initialize metrics (only once, reuse each epoch)
+        if epoch == 1:
+            metrics = ImageMetrics(device)
+
+        with torch.no_grad():
+            for batch in val_loader:
+                rgb      = batch["rgb"].to(device)
+                thermal  = batch["thermal"].to(device)
+                ae_embed = batch["alphaearth"].to(device)
+                B        = rgb.shape[0]
+                t        = torch.rand(B, device=device)
+                noise    = torch.randn_like(thermal)
+                z_t      = (1 - t.view(B,1,1,1)) * noise + t.view(B,1,1,1) * thermal
+                target_v = thermal - noise
+                style_idx = torch.zeros(B, dtype=torch.long, device=device)
+
+                try:
+                    pred_v = model(z_t, rgb, t, style_idx)
+                except TypeError:
+                    pred_v = model(rgb)
+
+                val_losses.append(flow_matching_loss(pred_v, target_v).item())
+
+                # compute image quality metrics on predicted vs target
+                m = metrics.compute_all(pred_v, target_v)
+                all_psnr.append(m["psnr"])
+                all_ssim.append(m["ssim"])
+                all_lpips.append(m["lpips"])
+
+        avg_val_loss = sum(val_losses) / len(val_losses)
+        avg_psnr     = sum(all_psnr)   / len(all_psnr)
+        avg_ssim     = sum(all_ssim)   / len(all_ssim)
+        avg_lpips    = sum(all_lpips)  / len(all_lpips)
+
+        print(f"\nEpoch {epoch:3d} | "
+              f"train loss: {avg_train_loss:.4f} | "
+              f"val loss: {avg_val_loss:.4f}")
+        print(f"         | "
+              f"PSNR: {avg_psnr:.2f} dB | "
+              f"SSIM: {avg_ssim:.4f} | "
+              f"LPIPS: {avg_lpips:.4f}")
+
 
         with torch.no_grad():
             for batch in val_loader:

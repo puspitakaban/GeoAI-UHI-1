@@ -11,3 +11,4 @@ PyYAML
 tqdm
 safetensors
 lpips
+torchmetrics
