@@ -38,3 +38,5 @@ Thumbs.db
 *.png
 *.jpg
 *.jpeg
+# allow metadata JSON files
+find . -type f | wc -l.json

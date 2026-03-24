@@ -539,7 +539,7 @@ def train(config_path="configs/config.yml"):
             "optimizer":    optimizer.state_dict(),
             "train_loss":   avg_train_loss,
         }, emergency)
-        print(f"Emergency checkpoint saved: {emergency}")s
+        print(f"Emergency checkpoint saved: {emergency}")
 
     controller.summary()
 
