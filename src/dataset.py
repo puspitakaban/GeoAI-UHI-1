@@ -9,6 +9,7 @@ from PIL import Image
 import torchvision.transforms as transforms
 from huggingface_hub import hf_hub_download
 import rasterio
+Image.MAX_IMAGE_PIXELS = None
 
 
 class STGLDataset(Dataset):

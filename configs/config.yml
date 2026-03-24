@@ -1,7 +1,15 @@
+# ============================================================
+# ThermalGen — single config file for Dell XPS 16 (CPU only)
+# ============================================================
+
 # --- MODEL ---
 model: sit_b2
 patch_size: 2
 image_size: 64
+
+# --- MODEL SOURCE ---
+hf_model_id: xjh19972/ThermalGen-B-2
+hf_model_file: model.safetensors
 
 # --- TRAINING ---
 epochs: 10
@@ -12,10 +20,16 @@ grad_clip: 1.0
 # --- DATASET ---
 datafolder_name: STGL
 data_root: data/raw/STGL/
-dataset_index: 1          # start with Boson night only
+dataset_index: 1
 train_file: boson_region1_flight2_night_train.png
 val_file: boson_region1_flight2_night_val.png
 test_file: boson_region1_flight1_night_test.png
+
+# --- ALPHAEARTH EMBEDDINGS ---
+alphaearth_dir: data/embeddings/alphaearth/
+alphaearth_dim: 64
+alphaearth_year: 2022
+use_alphaearth: false
 
 # --- SAVING ---
 checkpoint_dir: models/checkpoints/sit_b2_cpu/
